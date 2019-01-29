@@ -180,6 +180,9 @@ begin
   begin
     scrbxOptions.RemoveControl(scrbxOptions.Controls[i]);
   end;
+  memHeader.Text := '';
+  memGuideline.Text := '';
+  memComment.Text := '';
 end;
 
 procedure TfrmRodentIII.DisplayGuideline(Sender: TObject);
@@ -227,11 +230,11 @@ begin
 	if FileExists(aFileName) then
   begin
 		OpenFileName := aFileName;
+		ClearOptionDisplay;
 		fRodentOptions := TRodentOptions.Create(fOpenFileName);
     SetMissingOptionsMenu;
 		memHeader.Lines.Text := fRodentOptions.Header;
 		MaxWidth := gGuidelines.GetMaxOptionWidth(Canvas);
-		ClearOptionDisplay;
 		for i := 0 to fRodentOptions.Count - 1 do
 		begin
 			OptionDisplay := TOptionDisplay.Create(scrbxOptions, fRodentOptions[i], MaxWidth);
