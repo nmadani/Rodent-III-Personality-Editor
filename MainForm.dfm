@@ -64,6 +64,8 @@ object frmRodentIII: TfrmRodentIII
         TabOrder = 0
         object tshGuideline: TTabSheet
           Caption = 'Guideline'
+          ExplicitLeft = 0
+          ExplicitTop = 0
           ExplicitWidth = 281
           ExplicitHeight = 165
           object memGuideline: TMemo
@@ -83,6 +85,8 @@ object frmRodentIII: TfrmRodentIII
         object tshComment: TTabSheet
           Caption = 'Comment'
           ImageIndex = 1
+          ExplicitLeft = 0
+          ExplicitTop = 0
           ExplicitWidth = 281
           ExplicitHeight = 165
           object memComment: TMemo

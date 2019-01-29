@@ -36,6 +36,8 @@ type
         reintroduce; overload;
     constructor Create(const aParent: TWinControl; const aOption, aValue: string; LabelWidth: Integer);
         reintroduce; overload;
+    procedure HighLightOn;
+    procedure HighLightOff;
     property Option: string read GetOption write SetOption;
     property Value: string read GetValue write SetValue;
     property OnChange: TNotifyEvent read fCallback write fCallback;
@@ -90,6 +92,7 @@ end;
 
 procedure TOptionDisplay.DisplayGuideline(Sender: TObject);
 begin
+  HighLightOn;
   if Assigned(fOnGuideline) then
     fOnGuideline(Self);
 end;
@@ -130,6 +133,20 @@ function TOptionDisplay.GetValueButtonWidth: Integer;
 begin
   Result := Canvas.TextWidth(cStrValueField) + 2 * Canvas.TextWidth(cStrIncDecCaption) +
             2 *cSmallMargin;
+end;
+
+procedure TOptionDisplay.HighLightOff;
+begin
+  BevelKind := bkNone;
+  BevelInner := bvNone;
+  BevelWidth := 1;
+end;
+
+procedure TOptionDisplay.HighLightOn;
+begin
+  BevelKind := bkTile;
+  BevelInner := bvLowered;
+  BevelWidth := 2;
 end;
 
 procedure TOptionDisplay.NotifyChange(Sender: TObject);

@@ -184,20 +184,37 @@ end;
 
 procedure TfrmRodentIII.DisplayGuideline(Sender: TObject);
 var
-  ix: Integer;
+  index: Integer;
+  i: Integer;
+  OD: TOptionDisplay;
 begin
   if Sender is TOptionDisplay then
   begin
     // Save any existing comment
     if memGuideline.Text <> '' then
     begin
-      if fRodentOptions.MatchStringToOption(memGuideline.Lines[0], ix) then
-        fRodentOptions.Comments[ix] := memComment.Text;
+      if fRodentOptions.MatchStringToOption(memGuideline.Lines[0], index) then
+      begin
+        fRodentOptions.Comments[index] := memComment.Text;
+        // remove highlight
+        for i := 0 to scrbxOptions.ControlCount - 1 do
+        begin
+          if scrbxOptions.Controls[i] is TOptionDisplay then
+          begin
+            OD := scrbxOptions.Controls[i] as TOptionDisplay;
+            if OD.Option = fRodentOptions.Options[index] then
+            begin
+              OD.HighLightOff;
+              Break;
+            end;
+          end;
+        end;
+      end;
     end;
     memGuideline.Text := (Sender as TOptionDisplay).Option + sLineBreak +
                                (Sender as TOptionDisplay).Guideline;
-    if fRodentOptions.MatchStringToOption((Sender as TOptionDisplay).Option, ix) then
-      memComment.Text := fRodentOptions.Comments[ix];
+    if fRodentOptions.MatchStringToOption((Sender as TOptionDisplay).Option, index) then
+      memComment.Text := fRodentOptions.Comments[index];
   end;
 end;
 
