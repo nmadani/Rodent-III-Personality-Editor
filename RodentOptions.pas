@@ -15,6 +15,7 @@ type
   ROption = record
     Option: string;
     Value: string;
+    Comment: string;
   public
     constructor Create(const aOption, aValue: string);
   end;
@@ -23,31 +24,51 @@ type
 
   IRodentOptions = interface
   ['{EF928B5F-DD9E-4235-B073-384AC1FBE0C8}']
+    function GetComments(Index: Integer): string;
     function GetCount: Integer;
-    function GetComments: string;
-    function GetOptions: TOptionArray;
+    function GetHeader: string;
+    function GetItems(Index: Integer): ROption;
+    procedure SetHeader(const Value: string);
+    function GetOptions(Index: Integer): string;
+    procedure SetOptions(Index: Integer; const Value: string);
     function Save(const AFileName: string): Boolean;
-    procedure SetComments(const Value: string); stdcall;
+    function MatchStringToOption(const aString: string; out Index: Integer): Boolean;
+    procedure SetComments(Index: Integer; const Value: string);
+    function GetValues(Index: Integer): string;
+    procedure SetValues(Index: Integer; const Value: string);
     property Count: Integer read GetCount;
-    property Comments: string read GetComments write SetComments;
-    property Options: TOptionArray read GetOptions;
+    property Header: string read GetHeader write SetHeader;
+    property Comments[Index: Integer]: string read GetComments write SetComments;
+    property Items[Index: Integer]: ROption read GetItems; default;
+    property Options[Index: Integer]: string read GetOptions write SetOptions;
+    property Values[Index: Integer]: string read GetValues write SetValues;
   end;
 
   TRodentOptions = class(TInterfacedObject, IRodentOptions)
   private
     fOptions: TOptionArray;
-    fHeader: TStringList;
+    fHeader: string;
     procedure ParseFile(const aFileName: string);
     function RunRegex(const aText: string): TMatchCollection;
     procedure ParseMatch(const Matches: TMatchCollection);
+    procedure ParseComments(const aSL: TStringList);
     function GetCount: Integer;
-    procedure SetComments(const Value: string); stdcall;
-    function GetComments: string;
-    function GetOptions: TOptionArray;
+    function GetItems(Index: Integer): ROption;
+    procedure SetHeader(const Value: string);
+    function GetHeader: string;
+    function GetOptions(Index: Integer): string;
+    procedure SetOptions(Index: Integer; const Value: string);
+    function GetValues(Index: Integer): string;
+    procedure SetValues(Index: Integer; const Value: string);
+    function GetComments(Index: Integer): string;
+    procedure SetComments(Index: Integer; const Value: string);
     function Save(const AFileName: string): Boolean;
 		constructor Create; overload;
-    procedure TextToHeader(const Comments: string);
     procedure ControlToOptions(const Container: TWinControl);
+    function MatchStringToOption(const aString: string; out Index: Integer): Boolean;
+    function StringToComment(const aString: string): string;
+    function CommentToString(const aString: string): string;
+    function IsEmptyAsComment(const aString: string): Boolean;
 	public
 		constructor Create(const aFileName: string); overload;
 		constructor Create(const Comments: string; const Container: TWinControl); overload;
@@ -68,7 +89,11 @@ uses
   Guidelines;
 
 resourcestring
-	CStrSetoptionName = 'setoption name ';
+  CStrIndexOutOfRange = 'Index out of range!';
+
+const
+  CStrSetoptionName = 'setoption name ';
+  CRodentOptionRegex = 'setoption name (?<option>.+) value (?<value>.+)';
 
 constructor TRodentOptions.Create(const aFileName: string);
 begin
@@ -79,20 +104,45 @@ end;
 constructor TRodentOptions.Create(const Comments: string; const Container: TWinControl);
 begin
 	Create;
-	TextToHeader(Comments);
+  fHeader := StringToComment(Comments);
 	ControlToOptions(Container);
 end;
 
 constructor TRodentOptions.Create;
 begin
 	inherited Create;
-	fHeader := TStringList.Create;
 end;
 
 destructor TRodentOptions.Destroy;
 begin
-  fHeader.Free;
+  fHeader := '';
   inherited;
+end;
+
+function TRodentOptions.CommentToString(const aString: string): string;
+var
+  inSl: TStringList;
+  outSl: TStringList;
+  lLine: string;
+begin
+  Result := '';
+  outSl := nil;
+  inSl := TStringList.Create;
+  try
+    outSl := TStringList.Create;
+    inSl.Text := aString;
+    for lLine in inSl do
+    begin
+      if lLine.StartsWith('; ') then
+        outSl.Add(lLine.Substring(2))
+      else if lLine.StartsWith(';') then
+        outSl.Add(lLine.Substring(1));
+    end;
+    Result := outSl.Text;
+  finally
+    inSl.Free;
+    outSl.Free;
+  end;
 end;
 
 procedure TRodentOptions.ControlToOptions(const Container: TWinControl);
@@ -121,29 +171,42 @@ begin
   end;
 end;
 
-procedure TRodentOptions.TextToHeader(const Comments: string);
-var
-  sl: TStringList;
-  line: string;
+function TRodentOptions.GetHeader: string;
 begin
-  sl := TStringList.Create;
-  try
-    sl.Text := Comments;
-    for line in sl do
-    begin
-      if line.StartsWith(';') then
-        fHeader.Add(line)
-      else
-        fHeader.Add('; ' + line);
-    end;
-  finally
-    sl.Free;
-  end;
+  Result := CommentToString(fHeader);
 end;
 
-function TRodentOptions.GetComments: string;
+function TRodentOptions.GetItems(Index: Integer): ROption;
 begin
-  Result := fHeader.Text;
+  if (Index < Low(fOptions)) or (Index > High(fOptions)) then
+    raise EArgumentOutOfRangeException.Create(CStrIndexOutOfRange);
+  Result := fOptions[Index];
+end;
+
+function TRodentOptions.GetOptions(Index: Integer): string;
+begin
+  if (Index < Low(fOptions)) or (Index > High(fOptions)) then
+    raise EArgumentOutOfRangeException.Create(CStrIndexOutOfRange);
+  Result := fOptions[Index].Option;
+end;
+
+function TRodentOptions.GetValues(Index: Integer): string;
+begin
+  if (Index < Low(fOptions)) or (Index > High(fOptions)) then
+    raise EArgumentOutOfRangeException.Create(CStrIndexOutOfRange);
+  Result := fOptions[Index].Value;
+end;
+
+function TRodentOptions.IsEmptyAsComment(const aString: string): Boolean;
+begin
+  Result := aString.Replace(';', '', [rfReplaceAll]).Trim.IsEmpty;
+end;
+
+function TRodentOptions.GetComments(Index: Integer): string;
+begin
+  if (Index < Low(fOptions)) or (Index > High(fOptions)) then
+    raise EArgumentOutOfRangeException.Create(CStrIndexOutOfRange);
+  Result := CommentToString(fOptions[Index].Comment);
 end;
 
 function TRodentOptions.GetCount: Integer;
@@ -151,29 +214,76 @@ begin
   Result := Length(fOptions);
 end;
 
-function TRodentOptions.GetOptions: TOptionArray;
+function TRodentOptions.MatchStringToOption(const aString: string; out Index: Integer): Boolean;
+var
+  i: Integer;
 begin
-  Result := fOptions;
+  for i := Low(fOptions) to High(fOptions) do
+  begin
+    if aString.Contains(fOptions[i].Option) then
+    begin
+      Index := i;
+      Exit(True);
+    end;
+  end;
+  Index := -1;
+  Result := False;
+end;
+
+procedure TRodentOptions.ParseComments(const aSL: TStringList);
+var
+  i: Integer;
+  OptIndex: Integer;
+  lComment: string;
+begin
+  i := 0;
+  // Discard the header comments
+  while (i < aSL.Count) and (aSl[i].Trim.StartsWith(';')) do
+    Inc(i);
+  while (i < aSL.Count) do
+  begin
+    lComment := '';
+    while aSL[i].Trim.StartsWith(';') do
+    begin
+      if lComment.IsEmpty then
+        lComment := aSL[i]
+      else
+        lComment := lComment + sLineBreak + aSL[i];
+      Inc(i);
+    end;
+    if not (lComment.IsEmpty) and (i < aSL.Count) then
+    begin
+      if MatchStringToOption(aSL[i], OptIndex) then
+        fOptions[OptIndex].Comment := lComment;
+    end;
+    Inc(i);
+  end;
 end;
 
 procedure TRodentOptions.ParseFile(const aFileName: string);
 var
-  lTextFile: TStringList;
+  lSL: TStringList;
   lLine: string;
 begin
-  lTextFile := TStringList.Create;
+  lSL := TStringList.Create;
   try
-    lTextFile.LoadFromFile(aFileName);
-    for lLine in lTextFile do
+    lSL.LoadFromFile(aFileName);
+    for lLine in lSL do
     begin
       if lLine.Trim.StartsWith(';') then
       begin
-        fHeader.Add(lLine.Trim);
-      end;
+        if fHeader.IsEmpty then
+          fHeader := lLine.Trim
+        else
+          fHeader := fHeader + sLineBreak + lLine.Trim;
+      end
+      else
+        Break;
     end;
-     ParseMatch(RunRegex(lTextFile.Text));
+    ParseMatch(RunRegex(lSL.Text));
+    ParseComments(lSL);
   finally
-    lTextFile.Free;
+    lSL.Free;
   end;
 
 end;
@@ -193,7 +303,7 @@ end;
 function TRodentOptions.RunRegex(const aText: string): TMatchCollection;
 begin
   try
-    Result := TRegEx.Matches(aText.Trim, 'setoption name (?<option>.+) value (?<value>.+)', [roNotEmpty]);
+    Result := TRegEx.Matches(aText.Trim, CRodentOptionRegex, [roNotEmpty]);
   except
     on E: ERegularExpressionError do begin
       raise;
@@ -205,7 +315,6 @@ function TRodentOptions.Save(const AFileName: string): Boolean;
 var
   sl: TStringList;
   i: Integer;
-  line: string;
 begin
   if (AFileName <> '') and
       TPath.HasValidPathChars(AFileName, False) and
@@ -213,15 +322,15 @@ begin
   begin
     sl := TStringList.Create;
     try
-      for line in fHeader do
+      if not IsEmptyAsComment(fHeader) then
       begin
-        if line.StartsWith(';') then
-          sl.Add(line)
-        else
-          sl.Add('; ' + line);
+        sl.Text := fHeader;
+        sl.Add(sLineBreak); // to separate header from option-specific comments
       end;
       for i := Low(fOptions) to High(fOptions) do
       begin
+        if not IsEmptyAsComment(fOptions[i].Comment) then
+          sl.Add(fOptions[i].Comment.Trim);
         sl.Add('setoption name ' + fOptions[i].Option + ' value ' + fOptions[i].Value);
       end;
       sl.SaveToFile(AFileName);
@@ -234,9 +343,51 @@ begin
     Result := false;
 end;
 
-procedure TRodentOptions.SetComments(const Value: string);
+procedure TRodentOptions.SetComments(Index: Integer; const Value: string);
 begin
-  fHeader.Text := Value;
+  if (Index < Low(fOptions)) or (Index > High(fOptions)) then
+    raise EArgumentOutOfRangeException.Create(CStrIndexOutOfRange);
+  fOptions[Index].Comment := StringToComment(Value);
+end;
+
+procedure TRodentOptions.SetHeader(const Value: string);
+begin
+  fHeader := StringToComment(Value);
+end;
+
+procedure TRodentOptions.SetOptions(Index: Integer; const Value: string);
+begin
+  if (Index < Low(fOptions)) or (Index > High(fOptions)) then
+    raise EArgumentOutOfRangeException.Create(CStrIndexOutOfRange);
+  fOptions[Index].Option := Value;
+end;
+
+procedure TRodentOptions.SetValues(Index: Integer; const Value: string);
+begin
+  if (Index < Low(fOptions)) or (Index > High(fOptions)) then
+    raise EArgumentOutOfRangeException.Create(CStrIndexOutOfRange);
+  fOptions[Index].Value := Value;
+end;
+
+function TRodentOptions.StringToComment(const aString: string): string;
+var
+  slIn: TStringList;
+  slOut: TStringList;
+  line: string;
+begin
+  Result := '';
+  slOut := nil;
+  slIn := TStringList.Create;
+  try
+    slOut := TStringList.Create;
+    slIn.Text := aString;
+    for line in slIn do
+      slOut.Add('; ' + line);
+    Result := slOut.Text;
+  finally
+    slIn.Free;
+    slOut.Free;
+  end;
 end;
 
 constructor ROption.Create(const aOption, aValue: string);
@@ -251,13 +402,13 @@ var
   Found: Boolean;
 begin
   Create;
-  fHeader.Text := AExistingOptions.Comments;
+  fHeader := AExistingOptions.Header;
   for i := 0 to gGuidelines.Count - 1 do
   begin
     Found := False;
     for j := 0 to AExistingOptions.Count - 1 do
     begin
-      if AExistingOptions.Options[j].Option = gGuidelines.Option[i] then
+      if AExistingOptions.Options[j] = gGuidelines.Option[i] then
       begin
         Found := True;
         Break;

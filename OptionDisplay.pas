@@ -62,8 +62,6 @@ const
 
 constructor TOptionDisplay.Create(const aParent: TWinControl; const aOption: ROption; LabelWidth:
     Integer);
-var
-  IntVal: Integer;
 begin
   inherited Create(aParent);
   Parent := aParent;
@@ -87,6 +85,7 @@ begin
     Dec(IntVal);
     fValue.Text := IntVal.ToString;
   end;
+  DisplayGuideline(Sender);
 end;
 
 procedure TOptionDisplay.DisplayGuideline(Sender: TObject);
@@ -124,6 +123,7 @@ begin
     Inc(IntVal);
     fValue.Text := IntVal.ToString;
   end;
+  DisplayGuideline(Sender);
 end;
 
 function TOptionDisplay.GetValueButtonWidth: Integer;
@@ -159,7 +159,7 @@ var
   lValue: string;
 begin
   fGuideline := gGuidelines.Guideline[aOption];
-  OnMouseEnter := DisplayGuideline;
+  OnClick := DisplayGuideline;
 
   // Handle missing defauls
   if aValue.IsEmpty then
@@ -179,7 +179,7 @@ begin
   fOption.Left := cLargeMargin;
   fOption.Caption := aOption;
   fOption.Font := Font;
-  fOption.OnMouseEnter := DisplayGuideline;
+  fOption.OnClick := DisplayGuideline;
 
   Height := fOption.Height + 2 * cSmallMargin;
   fOption.Top := (Height - Canvas.TextHeight(aOption)) div 2;
@@ -194,7 +194,6 @@ begin
     fDecrease.Left := fOption.Left + fOption.Width + cLargeMargin;
     fDecrease.OnClick := DecValue;
     fDecrease.Font := Font;
-    fDecrease.OnMouseEnter := DisplayGuideline;
 
     fValue := TEdit.Create(Self);
     fValue.Parent := Self;
@@ -204,7 +203,7 @@ begin
     fValue.Text := lValue;
     fValue.Font := Font;
     fValue.OnChange := NotifyChange;
-    fValue.OnMouseEnter := DisplayGuideline;
+    fValue.OnClick := DisplayGuideline;
 
     fIncrease := TButton.Create(Self);
     fIncrease.Parent := Self;
@@ -214,7 +213,6 @@ begin
     fIncrease.Left := fValue.Left + fValue.Width + cSmallMargin;
     fIncrease.OnClick := IncValue;
     fIncrease.Font := Font;
-    fIncrease.OnMouseEnter := DisplayGuideline;
   end
   else
   begin
@@ -226,7 +224,7 @@ begin
     fValue.Font := Font;
     fValue.Width := GetValueButtonWidth;
     fValue.OnChange := NotifyChange;
-    fValue.OnMouseEnter := DisplayGuideline;
+    fValue.OnClick := DisplayGuideline;
   end;
 end;
 

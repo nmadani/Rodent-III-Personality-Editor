@@ -26,42 +26,90 @@ object frmRodentIII: TfrmRodentIII
     Left = 0
     Top = 26
     Width = 861
-    Height = 121
+    Height = 159
     Align = alTop
     Caption = 'pnlTop'
     ShowCaption = False
     TabOrder = 1
-    object memComments: TMemo
+    object memHeader: TMemo
       Left = 1
       Top = 1
       Width = 336
-      Height = 119
+      Height = 157
       Align = alLeft
       ScrollBars = ssVertical
       TabOrder = 0
+      ExplicitHeight = 119
     end
-    object memGuideline: TMemo
+    object pnlComments: TPanel
       Left = 337
       Top = 1
       Width = 523
-      Height = 119
+      Height = 157
       Align = alClient
-      Color = clInfoBk
-      ReadOnly = True
-      ScrollBars = ssVertical
+      Caption = 'pnlComments'
+      ShowCaption = False
       TabOrder = 1
+      ExplicitLeft = 216
+      ExplicitTop = 40
+      ExplicitWidth = 185
+      ExplicitHeight = 41
+      object pgcComments: TPageControl
+        Left = 1
+        Top = 1
+        Width = 521
+        Height = 155
+        ActivePage = tshGuideline
+        Align = alClient
+        TabOrder = 0
+        object tshGuideline: TTabSheet
+          Caption = 'Guideline'
+          ExplicitWidth = 281
+          ExplicitHeight = 165
+          object memGuideline: TMemo
+            Left = 0
+            Top = 0
+            Width = 513
+            Height = 127
+            Align = alClient
+            Color = clInfoBk
+            ReadOnly = True
+            ScrollBars = ssVertical
+            TabOrder = 0
+            ExplicitWidth = 281
+            ExplicitHeight = 165
+          end
+        end
+        object tshComment: TTabSheet
+          Caption = 'Comment'
+          ImageIndex = 1
+          ExplicitWidth = 281
+          ExplicitHeight = 165
+          object memComment: TMemo
+            Left = 0
+            Top = 0
+            Width = 513
+            Height = 127
+            Align = alClient
+            ScrollBars = ssVertical
+            TabOrder = 0
+          end
+        end
+      end
     end
   end
   object scrbxOptions: TScrollBox
     Left = 0
-    Top = 147
+    Top = 185
     Width = 861
-    Height = 375
+    Height = 337
     HorzScrollBar.Visible = False
     Align = alClient
     PopupMenu = pumMissingOptions
     TabOrder = 2
     OnResize = scrbxOptionsResize
+    ExplicitTop = 147
+    ExplicitHeight = 375
   end
   object ActionToolBar1: TActionToolBar
     Left = 0
@@ -144,6 +192,10 @@ object frmRodentIII: TfrmRodentIII
       Category = 'File'
       Caption = 'New file'
       OnExecute = actNewFileExecute
+    end
+    object actLicense: TAction
+      Caption = 'License'
+      OnExecute = actLicenseExecute
     end
   end
   object ImageList1: TImageList
@@ -591,6 +643,9 @@ object frmRodentIII: TfrmRodentIII
       object mnuRemoveAllOptions: TMenuItem
         Action = actRemoveAllOptions
       end
+    end
+    object mnuLicense: TMenuItem
+      Action = actLicense
     end
   end
 end

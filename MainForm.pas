@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages,
-  System.SysUtils, System.Variants, System.Classes,
+  System.SysUtils, System.Variants, System.Classes, System.UITypes,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtDlgs, Vcl.ExtCtrls, Vcl.ComCtrls, System.Actions, Vcl.ActnList, Vcl.ToolWin, Vcl.ActnMan,
   Vcl.ActnCtrls, Vcl.PlatformDefaultStyleActnCtrls, Vcl.StdActns, System.ImageList, Vcl.ImgList,
   FileBackup,
@@ -15,7 +15,7 @@ type
   TfrmRodentIII = class(TForm)
     scrbxOptions: TScrollBox;
     StatusBar1: TStatusBar;
-    memComments: TMemo;
+    memHeader: TMemo;
     pnlTop: TPanel;
     ActionToolBar1: TActionToolBar;
     ActionManager1: TActionManager;
@@ -40,11 +40,19 @@ type
     actRemoveAllOptions: TAction;
     actNewFile: TAction;
     mnuNewFile: TMenuItem;
+    pnlComments: TPanel;
+    pgcComments: TPageControl;
+    tshGuideline: TTabSheet;
+    tshComment: TTabSheet;
+    memComment: TMemo;
+    actLicense: TAction;
+    mnuLicense: TMenuItem;
     procedure actAddAllOptionsExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
 		procedure actSaveExecute(Sender: TObject);
     procedure actFileOpenAccept(Sender: TObject);
 		procedure actFileSaveAsAccept(Sender: TObject);
+    procedure actLicenseExecute(Sender: TObject);
     procedure actNewFileExecute(Sender: TObject);
     procedure actRemoveAllOptionsExecute(Sender: TObject);
     procedure actRemoveOptionExecute(Sender: TObject);
@@ -74,7 +82,7 @@ implementation
 
 {$R *.dfm}
 
-uses Guidelines;
+uses Guidelines, LicenseUnit;
 
 procedure TfrmRodentIII.actAddAllOptionsExecute(Sender: TObject);
 var
@@ -83,7 +91,7 @@ var
 begin
   for i := 0 to fMissingOptions.Count - 1 do
   begin
-    OD := TOptionDisplay.Create(scrbxOptions, fMissingOptions.Options[i], gGuidelines.GetMaxOptionWidth(Canvas));
+    OD := TOptionDisplay.Create(scrbxOptions, fMissingOptions[i], gGuidelines.GetMaxOptionWidth(Canvas));
     OD.OnChange := OptionChanged;
     OD.OnGuideline := DisplayGuideline;
     OD.RemoveMenu := pumRemoveOption;
@@ -91,7 +99,7 @@ begin
       fMinOptionDisaplyWidth := OD.MinDisplayWidth;
   end;
   scrbxOptionsResize(nil);
-  fRodentOptions := TRodentOptions.Create(fRodentOptions.Comments, scrbxOptions);
+  fRodentOptions := TRodentOptions.Create(fRodentOptions.Header, scrbxOptions);
   SetMissingOptionsMenu;
 end;
 
@@ -103,12 +111,13 @@ end;
 procedure TfrmRodentIII.actSaveExecute(Sender: TObject);
 var
   Backup: TFileBackup;
+  ix: Integer;
 begin
 	if fOpenFileName.IsEmpty then
 	begin
 		if actFileSaveAs.Dialog.Execute(Handle) = True then
 		begin
-      fRodentOptions.Comments := memComments.Text;
+      fRodentOptions.Header := memHeader.Text;
 			if fRodentOptions.Save(actFileSaveAs.Dialog.FileName) then
 			  OpenFileName := actFileSaveAs.Dialog.FileName;
 			Exit;
@@ -120,6 +129,12 @@ begin
 	try
 		if Backup.Success then
 		begin
+      fRodentOptions.Header := memHeader.Text;
+      if memGuideline.Text <> '' then
+      begin
+        if fRodentOptions.MatchStringToOption(memGuideline.Lines[0], ix) then
+          fRodentOptions.Comments[ix] := memComment.Text;
+      end;
 			fRodentOptions.Save(fOpenFileName);
 		end;
   finally
@@ -138,10 +153,10 @@ begin
     mi := Sender as TMenuItem;
     for i := 0 to fMissingOptions.Count - 1 do
     begin
-      if fMissingOptions.Options[i].Option = mi.Caption.Replace('&','') then
+      if fMissingOptions.Options[i] = mi.Caption.Replace('&','') then
       begin
-        OD := TOptionDisplay.Create(scrbxOptions, fMissingOptions.Options[i].Option,
-                                                  fMissingOptions.Options[i].Value,
+        OD := TOptionDisplay.Create(scrbxOptions, fMissingOptions.Options[i],
+                                                  fMissingOptions.Values[i],
                                                   gGuidelines.GetMaxOptionWidth(Canvas));
         OD.OnChange := OptionChanged;
         OD.OnGuideline := DisplayGuideline;
@@ -149,7 +164,7 @@ begin
         if fMinOptionDisaplyWidth = 0 then
           fMinOptionDisaplyWidth := OD.MinDisplayWidth;
         scrbxOptionsResize(nil);
-        fRodentOptions := TRodentOptions.Create(fRodentOptions.Comments, scrbxOptions);
+        fRodentOptions := TRodentOptions.Create(fRodentOptions.Header, scrbxOptions);
         Break;
       end;
     end;
@@ -168,10 +183,22 @@ begin
 end;
 
 procedure TfrmRodentIII.DisplayGuideline(Sender: TObject);
+var
+  ix: Integer;
 begin
   if Sender is TOptionDisplay then
-    memGuideline.Lines.Text := (Sender as TOptionDisplay).Option + sLineBreak +
+  begin
+    // Save any existing comment
+    if memGuideline.Text <> '' then
+    begin
+      if fRodentOptions.MatchStringToOption(memGuideline.Lines[0], ix) then
+        fRodentOptions.Comments[ix] := memComment.Text;
+    end;
+    memGuideline.Text := (Sender as TOptionDisplay).Option + sLineBreak +
                                (Sender as TOptionDisplay).Guideline;
+    if fRodentOptions.MatchStringToOption((Sender as TOptionDisplay).Option, ix) then
+      memComment.Text := fRodentOptions.Comments[ix];
+  end;
 end;
 
 procedure TfrmRodentIII.OpenFile(const aFileName: string);
@@ -185,12 +212,12 @@ begin
 		OpenFileName := aFileName;
 		fRodentOptions := TRodentOptions.Create(fOpenFileName);
     SetMissingOptionsMenu;
-		memComments.Lines.Text := fRodentOptions.Comments;
+		memHeader.Lines.Text := fRodentOptions.Header;
 		MaxWidth := gGuidelines.GetMaxOptionWidth(Canvas);
 		ClearOptionDisplay;
 		for i := 0 to fRodentOptions.Count - 1 do
 		begin
-			OptionDisplay := TOptionDisplay.Create(scrbxOptions, fRodentOptions.Options[i], MaxWidth);
+			OptionDisplay := TOptionDisplay.Create(scrbxOptions, fRodentOptions[i], MaxWidth);
 			OptionDisplay.OnChange := OptionChanged;
       OptionDisplay.RemoveMenu := pumRemoveOption;
 			OptionDisplay.OnGuideline := DisplayGuideline;
@@ -211,7 +238,7 @@ begin
   for i := 0 to fMissingOptions.Count - 1 do
   begin
     mi := TMenuItem.Create(pumMissingOptions);
-    mi.Caption := fMissingOptions.Options[i].Option;
+    mi.Caption := fMissingOptions.Options[i];
     mi.OnClick := AddMissingOption;
     pumMissingOptions.Items.Add(mi);
   end;
@@ -227,8 +254,8 @@ begin
     od := (Sender as TOptionDisplay);
     for i := 0 to fRodentOptions.Count - 1 do
     begin
-      if fRodentOptions.Options[i].Option = od.Option then
-        fRodentOptions.Options[i].Value := od.Value;
+      if fRodentOptions.Options[i] = od.Option then
+        fRodentOptions.Values[i] := od.Value;
     end;
 	end;
 end;
@@ -242,6 +269,11 @@ procedure TfrmRodentIII.actFileSaveAsAccept(Sender: TObject);
 begin
 	if fRodentOptions.Save(actFileSaveAs.Dialog.FileName) then
     OpenFileName := actFileSaveAs.Dialog.FileName;
+end;
+
+procedure TfrmRodentIII.actLicenseExecute(Sender: TObject);
+begin
+  LicenseUnit.frmLicense.ShowModal;
 end;
 
 procedure TfrmRodentIII.actNewFileExecute(Sender: TObject);
@@ -258,7 +290,7 @@ end;
 procedure TfrmRodentIII.actRemoveAllOptionsExecute(Sender: TObject);
 begin
   ClearOptionDisplay;
-  fRodentOptions := TRodentOptions.Create(memComments.Text, scrbxOptions);
+  fRodentOptions := TRodentOptions.Create(memHeader.Text, scrbxOptions);
   SetMissingOptionsMenu;
 end;
 
@@ -266,7 +298,6 @@ procedure TfrmRodentIII.actRemoveOptionExecute(Sender: TObject);
 var
   i: Integer;
   Control: TControl;
-  OD: TOptionDisplay;
   MousePos: TPoint;
 begin
   if Sender is TAction then
@@ -281,10 +312,9 @@ begin
       end;
       if Control is TOptionDisplay then
       begin
-        OD := Control as TOptionDisplay;
         scrbxOptions.RemoveControl(Control);
         scrbxOptionsResize(nil);
-        fRodentOptions := TRodentOptions.Create(fRodentOptions.Comments, scrbxOptions);
+        fRodentOptions := TRodentOptions.Create(fRodentOptions.Header, scrbxOptions);
         Break;
       end;
     end;
@@ -321,9 +351,9 @@ end;
 
 procedure TfrmRodentIII.SetNewFile;
 begin
-  memComments.Text := '';
+  memHeader.Text := '';
   ClearOptionDisplay;
-  fRodentOptions := TRodentOptions.Create(memComments.Text, scrbxOptions);
+  fRodentOptions := TRodentOptions.Create(memHeader.Text, scrbxOptions);
   SetMissingOptionsMenu;
   OpenFileName := '';
   Caption := 'New personality file';
