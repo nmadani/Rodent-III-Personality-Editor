@@ -1,3 +1,5 @@
+//  Copyright 2019 Navid Madani
+//  Distributed under GNU General Public License Version 3.0, June 29, 2007
 unit LicenseUnit;
 
 interface
