@@ -135,7 +135,7 @@ begin
         if fRodentOptions.MatchStringToOption(memGuideline.Lines[0], ix) then
           fRodentOptions.Comments[ix] := memComment.Text;
       end;
-			fRodentOptions.Save(fOpenFileName);
+			fRodentOptions.Save(Backup.SaveFileName);
 		end;
   finally
 		Backup.Free;
