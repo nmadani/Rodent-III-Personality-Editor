@@ -149,15 +149,15 @@ end;
 procedure TGuidelines.LoadDatabase;
 var
   lConn: TFDConnection;
-  lTable: TFDTable;
+  lTable: TFDQuery;
 begin
   lTable := nil;
   lConn := TFDConnection.Create(nil);
   try
     lConn.ConnectionDefName := CSQLitePooledName;
-    lTable := TFDTable.Create(nil);
+    lTable := TFDQuery.Create(nil);
     lTable.Connection := lConn;
-    lTable.Open('options');
+    lTable.Open('SELECT * FROM options o ORDER BY o.category_fk');
     lTable.First;
     while not lTable.Eof do
     begin
